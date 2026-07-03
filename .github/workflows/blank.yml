@@ -1,16 +1,27 @@
-name: Game of Life
+name: Build & Run Game of Life
 
 on: [push, pull_request]
 
 jobs:
-  run:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
       - run: |
           git clone https://github.com/kevinlawler/kona.git
           cd kona
-          make -j$(nproc)
+          make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 
-      - run: echo '' | ./kona/k 1.k
+      - run: echo '' | ./kona/k 1.k > output.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kona-${{ matrix.os }}
+          path: |
+            kona/k
+            life.k
+            output.txt
